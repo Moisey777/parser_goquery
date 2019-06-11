@@ -1,0 +1,49 @@
+package main
+
+import (
+	"fmt"
+	"github.com/PuerkitoBio/goquery"
+	"os"
+	"sync"
+)
+
+func _check(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+// основная функция обработки
+func parseUrl(url string) {
+	fmt.Println("request: " + url)
+
+	// заворачиваем источник в goquery документ
+	doc, err := goquery.NewDocument(url)
+	_check(err)
+
+	// в манере jquery, css селектором получаем все ссылки
+	doc.Find("a").Each(func(i int, s *goquery.Selection) {
+		link, _ := s.Attr("href")
+		fmt.Println(link)
+	})
+}
+
+func main() {
+	var wg sync.WaitGroup
+
+	// получаем список url из входных параметров
+	for _, url := range os.Args[1:] {
+		// каждый выполним параллельно
+		wg.Add(1)
+
+		// закрываем в анонимной функции переменную из цикла,
+		// что бы предотвартить её потерю во время обработки
+		go func(url string) {
+			defer wg.Done()
+			parseUrl(url)
+		}(url)
+	}
+
+	// ждем завершения процессов
+	wg.Wait()
+}
